@@ -14,8 +14,8 @@ warnings.filterwarnings("ignore")
 #model_dir = os.path.join(current_dir, 'model')
 
 # 모델 로드
-c_model = joblib.load("./Kmeans_model.joblib")
-rf_model = joblib.load("./모든 데이터 학습_best_rf_model.joblib")
+c_model = joblib.load("./model/Kmeans_model.joblib")
+rf_model = joblib.load("./model/모든 데이터 학습_best_rf_model.joblib")
 
 # 사용자 입력 함수 (올바른 입력값 받을 때까지 반복)
 def get_valid_input(prompt, valid_options):
@@ -26,7 +26,7 @@ def get_valid_input(prompt, valid_options):
         print("잘못된 입력입니다. 다시 시도하세요.")
 
 # 데이터 로드
-data = pd.read_csv("./원두와 5가지 지표.csv")
+data = pd.read_csv("./model/원두와 5가지 지표.csv")
 data.set_index("Bean", inplace=True)
 cosine_sim = cosine_similarity(data)
 cosine_sim_df = pd.DataFrame(cosine_sim, index=data.index, columns=data.index)
