@@ -8,11 +8,11 @@ import warnings
 warnings.filterwarnings("ignore")
 
 # 모델 로드
-c_model = joblib.load("Kmeans_model.joblib")
-rf_model = joblib.load("모든 데이터 학습_best_rf_model.joblib")
+c_model = joblib.load("./model/Kmeans_model.joblib")
+rf_model = joblib.load("./model/모든 데이터 학습_best_rf_model.joblib")
 
 # 데이터 로드
-data = pd.read_csv("/content/원두와 5가지 지표.csv")
+data = pd.read_csv("./model/원두와 5가지 지표.csv")
 data.set_index("Bean", inplace=True)
 cosine_sim = cosine_similarity(data)
 cosine_sim_df = pd.DataFrame(cosine_sim, index=data.index, columns=data.index)
