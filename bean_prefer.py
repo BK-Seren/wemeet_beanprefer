@@ -61,7 +61,7 @@ purchase_history = st.radio("원더룸에서 원두를 구입해 본 적이 있�
 exclude_beans = ["TheVenti", "Mega", "Paik", "Starbucks", "Ediya", "Compose", "Twosome", "Ethiopia Yirgacheffe Kochere Washed"]
 
 if purchase_history == "예":
-    purchased_bean = st.selectbox("구입했던 원두를 선택해주세요", data.index)
+    purchased_bean = st.selectbox("구입했던 원두를 선택해주세요",  [bean for bean in data.index if bean not in exclude_beans])
 
     if st.button("추천 받기"):
         recommended_beans = list(
