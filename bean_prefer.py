@@ -24,36 +24,37 @@ if 'dislike_list' not in st.session_state:
     st.session_state.dislike_list = []
 if 'liked_beans' not in st.session_state:
     st.session_state.liked_beans = []
+if 'recommended_beans' not in st.session_state:
+    st.session_state.recommended_beans = []
 
 # 추천 평가 함수
-def evaluate_recommendations(base_bean, recommended_beans):
-    liked_beans = []
+def recommend_beans(purchased_bean):
+    return list(
+        cosine_sim_df[purchased_bean]
+        .sort_values(ascending=False)
+        .drop([purchased_bean] + brand_names + st.session_state.dislike_list, axis=0)
+        .head(3).index
+    )
+
+# 추천 평가
+def evaluate_recommendations(recommended_beans):
+    sentiment_mapping = [":material/thumb_down:", ":material/thumb_up:"]
+    user_feedback = {}
 
     for bean in recommended_beans:
-        if bean not in st.session_state.dislike_list:
-            sentiment_mapping = [":material/thumb_down:", ":material/thumb_up:"]
-            selected = st.feedback("thumbs", key=bean)
-            if selected is not None:
-                st.markdown(f"{bean}: {sentiment_mapping[selected]}")
-                if selected == 0:
-                    st.session_state.dislike_list.append(bean)
-                    st.write(f"{bean}이 불호로 평가되었습니다.")
-                else:
-                    if bean not in st.session_state.liked_beans:
-                        st.session_state.liked_beans.append(bean)
+        selected = st.feedback("thumbs", key=bean)
+        if selected is not None:
+            st.markdown(f"{bean}: {sentiment_mapping[selected]}")
+            user_feedback[bean] = selected
 
-    # 평가 완료 버튼
-    if st.button("평가 완료"):
-        final_beans = st.session_state.liked_beans[:3]
-        st.write("### 최종 추천된 원두:")
-        st.write(final_beans)
-        st.markdown("[원두 구매하러 가기](https://www.wonderroom.co.kr/)")
+    for bean, feedback in user_feedback.items():
+        if feedback == 0:  # thumb_down
+            st.session_state.dislike_list.append(bean)
+            st.write(f"{bean}이 불호로 평가되었습니다.")
+        else:  # thumb_up
+            if bean not in st.session_state.liked_beans:
+                st.session_state.liked_beans.append(bean)
 
-    # 다시하기 버튼
-    if st.button("다시 시작"):
-        st.session_state.dislike_list = []
-        st.session_state.liked_beans = []
-        st.write("시스템이 초기화되었습니다.")
 
 
 st.title("커피 원두 추천 시스템")
@@ -63,17 +64,17 @@ purchase_history = st.radio("원더룸에서 원두를 구입해 본 적이 있�
 exclude_beans = ["TheVenti", "Mega", "Paik", "Starbucks", "Ediya", "Compose", "Twosome", "Ethiopia Yirgacheffe Kochere Washed"]
 
 if purchase_history == "예":
-    purchased_bean = st.selectbox("구입했던 원두 중 선호한 원두를 선택해주세요",  [bean for bean in data.index if bean not in exclude_beans])
+    purchased_bean = st.selectbox(
+        "구입했던 원두 중 선호한 원두를 선택해주세요",
+        [bean for bean in data.index if bean not in exclude_beans]
+    )
 
     if st.button("추천 원두 확인"):
-        recommended_beans = list(
-            cosine_sim_df[purchased_bean]
-            .sort_values(ascending=False)
-            .drop([purchased_bean] + brand_names + st.session_state.dislike_list, axis=0)
-            .head(3).index
-        )
-        final_recommendations = evaluate_recommendations(purchased_bean, recommended_beans)
-        st.write("최종 추천 원두 리스트:", final_recommendations)
+        st.session_state.recommended_beans = recommend_beans(purchased_bean)
+
+    if st.session_state.recommended_beans:
+        st.write("추천 원두 리스트:")
+        evaluate_recommendations(st.session_state.recommended_beans)
 
 else:
     sex = st.radio("성별을 선택하세요", ["남", "여"])
@@ -84,25 +85,20 @@ else:
     coffee_type = st.selectbox("커피 타입", ["블랙", "우유 라떼", "시럽 커피", "설탕 커피"])
     flavor = st.selectbox("커피 풍미", ["고소한, 구운", "달콤, 설탕", "초콜릿", "과일", "꽃향"])
 
-    if st.button("추천 원두 확인"):
-        x = [1 if sex == "남" else 0, age, 1 if is_student == "학생" else 0,
-             9 if frequency == "매일" else 7 if frequency == "주 5-6회" else 5 if frequency == "주 3-4회" else 3 if frequency == "주 2회" else 1,
-             4 if method == "에스프레소 머신" else 3 if method == "핸드 드립" else 2 if method == "커피메이커" else 1,
-             4 if coffee_type == "블랙" else 3 if coffee_type == "우유 라떼" else 2 if coffee_type == "시럽 커피" else 1,
-             5 if flavor == "고소한, 구운" else 4 if flavor == "달콤, 설탕" else 3 if flavor == "초콜릿" else 2 if flavor == "과일" else 1]
+    if st.button("추천 카페 찾기"):
+        x = [
+            1 if sex == "남" else 0, age, 1 if is_student == "학생" else 0,
+            9 if frequency == "매일" else 7 if frequency == "주 5-6회" else 5 if frequency == "주 3-4회" else 3 if frequency == "주 2회" else 1,
+            4 if method == "에스프레소 머신" else 3 if method == "핸드 드립" else 2 if method == "커피메이커" else 1,
+            4 if coffee_type == "블랙" else 3 if coffee_type == "우유 라떼" else 2 if coffee_type == "시럽 커피" else 1,
+            5 if flavor == "고소한, 구운" else 4 if flavor == "달콤, 설탕" else 3 if flavor == "초콜릿" else 2 if flavor == "과일" else 1
+        ]
 
         cluster_prediction = c_model.predict(np.array(x).reshape(1, -1))[0]
         x.append(cluster_prediction)
 
-        tag = brand_names
         cafe_prediction = rf_model.predict(np.array(x).reshape(1, -1))[0]
-        predicted_cafe = tag[cafe_prediction]
+        predicted_cafe = brand_names[cafe_prediction]
 
-        recommended_beans = list(
-            cosine_sim_df[predicted_cafe]
-            .sort_values(ascending=False)
-            .drop(tag, axis=0)
-            .head(3).index
-        )
-        final_recommendations = evaluate_recommendations(predicted_cafe, recommended_beans)
-        st.write("최종 추천 원두 리스트:", final_recommendations)
+        st.session_state.recommended_beans = recommend_beans(predicted_cafe)
+        evaluate_recommendations(st.session_state.recommended_beans)
