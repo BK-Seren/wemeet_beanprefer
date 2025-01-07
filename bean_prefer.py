@@ -53,36 +53,7 @@ def evaluate_recommendations(base_bean, recommended_beans):
                 liked_beans.append(bean)
 
         return remaining_beans
- '''           
-    while True:
-        st.write("\n추천 원두:")
-        for i, bean in enumerate(recommended_beans, start=1):
-            st.write(f"{i}. {bean}")
 
-        user_feedback = {}
-        for bean in recommended_beans:
-            if bean not in liked_beans and bean not in st.session_state.dislike_list:
-                feedback = st.radio(f"{bean}에 대해 평가해주세요", ["호", "불호"], key=bean)
-                user_feedback[bean] = 1 if feedback == "호" else 2
-
-        for bean, feedback in user_feedback.items():
-            if feedback == 2 and bean not in st.session_state.dislike_list:
-                st.session_state.dislike_list.append(bean)
-            elif feedback == 1 and bean not in liked_beans:
-                liked_beans.append(bean)
-
-        if len(user_feedback) > 0 and all(feedback == 1 for feedback in user_feedback.values()):
-            st.write("\n추천이 종료됩니다.")
-            break
-
-        all_candidates = cosine_sim_df[base_bean].sort_values(ascending=False).drop(
-            st.session_state.dislike_list + liked_beans + brand_names + [base_bean], axis=0
-        )
-        additional_beans = list(all_candidates.head(3 - len(liked_beans)).index)
-        recommended_beans = liked_beans + additional_beans
-
-    return liked_beans
-'''
 
 st.title("커피 원두 추천 시스템")
 
