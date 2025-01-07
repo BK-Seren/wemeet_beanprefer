@@ -24,7 +24,36 @@ if 'dislike_list' not in st.session_state:
 
 def evaluate_recommendations(base_bean, recommended_beans):
     liked_beans = []
+    remaining_beans = recommended_beans.copy()
 
+    for i, bean in enumerate(recommended_beans):
+        if bean not in liked_beans and bean not in st.session_state.dislike_list:
+            feedback = st.radio(f"{bean}에 대해 평가해주세요", ["호", "불호"], key=bean)
+            if feedback == "불호":
+                st.session_state.dislike_list.append(bean)
+                st.write(f"{bean}을(를) 불호로 평가했습니다. 새로운 원두를 추천합니다.")
+
+                # 새로운 추천 원두 찾기
+                next_candidates = cosine_sim_df[base_bean].sort_values(ascending=False)
+                next_candidates = next_candidates.drop(
+                    [base_bean] + brand_names + st.session_state.dislike_list + liked_beans, axis=0
+                )
+
+                if not next_candidates.empty:
+                    new_recommendation = next_candidates.head(1).index[0]
+
+                    # 불호 원두 제거 및 새로운 원두 추가
+                    remaining_beans.pop(i)  # 현재 불호 원두 제거
+                    remaining_beans.append(new_recommendation)  # 새로운 원두 추가
+
+                    st.write(f"새로운 추천 리스트: {remaining_beans}")
+                else:
+                    st.warning("추천할 원두가 부족합니다.")
+            else:
+                liked_beans.append(bean)
+
+        return remaining_beans
+ '''           
     while True:
         st.write("\n추천 원두:")
         for i, bean in enumerate(recommended_beans, start=1):
@@ -53,6 +82,7 @@ def evaluate_recommendations(base_bean, recommended_beans):
         recommended_beans = liked_beans + additional_beans
 
     return liked_beans
+'''
 
 st.title("커피 원두 추천 시스템")
 
@@ -61,9 +91,9 @@ purchase_history = st.radio("원더룸에서 원두를 구입해 본 적이 있�
 exclude_beans = ["TheVenti", "Mega", "Paik", "Starbucks", "Ediya", "Compose", "Twosome", "Ethiopia Yirgacheffe Kochere Washed"]
 
 if purchase_history == "예":
-    purchased_bean = st.selectbox("구입했던 원두를 선택해주세요",  [bean for bean in data.index if bean not in exclude_beans])
+    purchased_bean = st.selectbox("구입했던 원두 중 선호한 원두를 선택해주세요",  [bean for bean in data.index if bean not in exclude_beans])
 
-    if st.button("추천 받기"):
+    if st.button("추천 원두 확인"):
         recommended_beans = list(
             cosine_sim_df[purchased_bean]
             .sort_values(ascending=False)
@@ -80,7 +110,7 @@ else:
     coffee_type = st.selectbox("커피 타입", ["블랙", "우유 라떼", "시럽 커피", "설탕 커피"])
     flavor = st.selectbox("커피 풍미", ["고소한, 구운", "달콤, 설탕", "초콜릿", "과일", "꽃향"])
 
-    if st.button("추천 카페 찾기"):
+    if st.button("추천 원두 확인"):
         x = [1 if sex == "남" else 0, age, 1 if is_student == "학생" else 0,
              9 if frequency == "매일" else 7 if frequency == "주 5-6회" else 5 if frequency == "주 3-4회" else 3 if frequency == "주 2회" else 1,
              4 if method == "에스프레소 머신" else 3 if method == "핸드 드립" else 2 if method == "커피메이커" else 1,
