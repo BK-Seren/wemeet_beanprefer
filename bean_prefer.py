@@ -26,33 +26,42 @@ def evaluate_recommendations(base_bean, recommended_beans):
     liked_beans = []
     remaining_beans = recommended_beans.copy()
 
-    for i, bean in enumerate(recommended_beans):
+    i = 0
+    while i < len(remaining_beans):
+        bean = remaining_beans[i]
+
         if bean not in liked_beans and bean not in st.session_state.dislike_list:
             feedback = st.radio(f"{bean}에 대해 평가해주세요", ["호", "불호"], key=bean)
+
             if feedback == "불호":
                 st.session_state.dislike_list.append(bean)
                 st.write(f"{bean}을(를) 불호로 평가했습니다. 새로운 원두를 추천합니다.")
 
-                # 새로운 추천 원두 찾기
-                next_candidates = cosine_sim_df[base_bean].sort_values(ascending=False)
-                next_candidates = next_candidates.drop(
-                    [base_bean] + brand_names + st.session_state.dislike_list + liked_beans, axis=0
-                )
+                # 불호 원두 제거
+                remaining_beans.pop(i)
 
-                if not next_candidates.empty:
-                    new_recommendation = next_candidates.head(1).index[0]
+                # 새로운 추천 원두 추가
+                while len(remaining_beans) < 3:
+                    next_candidates = cosine_sim_df[base_bean].sort_values(ascending=False)
+                    next_candidates = next_candidates.drop(
+                        [base_bean] + brand_names + st.session_state.dislike_list + liked_beans, axis=0
+                    )
 
-                    # 불호 원두 제거 및 새로운 원두 추가
-                    remaining_beans.pop(i)  # 현재 불호 원두 제거
-                    remaining_beans.append(new_recommendation)  # 새로운 원두 추가
+                    if not next_candidates.empty:
+                        new_recommendation = next_candidates.head(1).index[0]
+                        remaining_beans.append(new_recommendation)
+                        st.write(f"새로운 추천 원두 추가: {new_recommendation}")
+                    else:
+                        st.warning("추천할 원두가 부족합니다.")
+                        break
 
-                    st.write(f"새로운 추천 리스트: {remaining_beans}")
-                else:
-                    st.warning("추천할 원두가 부족합니다.")
             else:
                 liked_beans.append(bean)
+                i += 1
+        else:
+            i += 1
 
-        return remaining_beans
+    return remaining_beans
 
 
 st.title("커피 원두 추천 시스템")
