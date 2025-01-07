@@ -58,6 +58,8 @@ st.title("커피 원두 추천 시스템")
 
 purchase_history = st.radio("원더룸에서 원두를 구입해 본 적이 있습니까?", ["예", "아니오"])
 
+exclude_beans = ["TheVenti", "Mega", "Paik", "Starbucks", "Ediya", "Compose", "Twosome", "Ethiopia Yirgacheffe Kochere Washed"]
+
 if purchase_history == "예":
     purchased_bean = st.selectbox("구입했던 원두를 선택해주세요", data.index)
 
