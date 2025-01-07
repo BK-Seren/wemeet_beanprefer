@@ -19,65 +19,41 @@ cosine_sim_df = pd.DataFrame(cosine_sim, index=data.index, columns=data.index)
 
 brand_names = ["TheVenti", "Mega", "Paik", "Starbucks", "Ediya", "Compose", "Twosome"]
 
+# 세션 초기화
 if 'dislike_list' not in st.session_state:
     st.session_state.dislike_list = []
-if 'remaining_beans' not in st.session_state:
-    st.session_state.remaining_beans = []
-if 'feedback' not in st.session_state:
-    st.session_state.feedback = {}
+if 'liked_beans' not in st.session_state:
+    st.session_state.liked_beans = []
 
+# 추천 평가 함수
 def evaluate_recommendations(base_bean, recommended_beans):
-    if not st.session_state.remaining_beans:
-        st.session_state.remaining_beans = recommended_beans.copy()
-        st.session_state.feedback = {bean: None for bean in recommended_beans}
-
     liked_beans = []
-    i = 0
 
-    while i < len(st.session_state.remaining_beans):
-        bean = st.session_state.remaining_beans[i]
+    for bean in recommended_beans:
+        if bean not in st.session_state.dislike_list:
+            sentiment_mapping = [":material/thumb_down:", ":material/thumb_up:"]
+            selected = st.feedback("thumbs", key=bean)
+            if selected is not None:
+                st.markdown(f"{bean}: {sentiment_mapping[selected]}")
+                if selected == 0:
+                    st.session_state.dislike_list.append(bean)
+                    st.write(f"{bean}이 불호로 평가되었습니다.")
+                else:
+                    if bean not in st.session_state.liked_beans:
+                        st.session_state.liked_beans.append(bean)
 
-        if bean not in liked_beans and bean not in st.session_state.dislike_list:
-            st.session_state.feedback[bean] = st.radio(
-                f"{bean}에 대해 평가해주세요",
-                ["호", "불호"],
-                index=0 if st.session_state.feedback[bean] == "호" else 1,
-                key=f"radio_{bean}"
-            )
+    # 평가 완료 버튼
+    if st.button("평가 완료"):
+        final_beans = st.session_state.liked_beans[:3]
+        st.write("### 최종 추천된 원두:")
+        st.write(final_beans)
+        st.markdown("[원두 구매하러 가기](https://www.wonderroom.co.kr/)")
 
-            if st.session_state.feedback[bean] == "불호":
-                st.session_state.dislike_list.append(bean)
-                st.write(f"{bean}을(를) 불호로 평가했습니다. 새로운 원두를 추천합니다.")
-                st.session_state.remaining_beans.pop(i)
-
-                while len(st.session_state.remaining_beans) < 3:
-                    next_candidates = cosine_sim_df[base_bean].sort_values(ascending=False)
-                    next_candidates = next_candidates.drop(
-                        [base_bean] + brand_names + st.session_state.dislike_list + liked_beans, axis=0
-                    )
-
-                    if not next_candidates.empty:
-                        new_recommendation = next_candidates.head(1).index[0]
-                        st.session_state.remaining_beans.append(new_recommendation)
-                        st.session_state.feedback[new_recommendation] = None
-                        st.write(f"새로운 추천 원두 추가: {new_recommendation}")
-                    else:
-                        st.warning("추천할 원두가 부족합니다.")
-                        break
-            else:
-                liked_beans.append(bean)
-                i += 1
-        else:
-            i += 1
-
-    # 모든 원두가 호로 평가된 경우
-    if len(liked_beans) == len(st.session_state.remaining_beans) and len(liked_beans) == 3:
-        st.write("\n모든 추천 원두가 호로 평가되었습니다. 추천 리스트를 다시 출력합니다.")
-        st.write("최종 추천 원두:", liked_beans)
-        st.write("프로그램이 종료되었습니다. 감사합니다!")
-        st.markdown("[원두 구매하러 가기](https://coffee-shop.example.com)")
-
-    return st.session_state.remaining_beans
+    # 다시하기 버튼
+    if st.button("다시 시작"):
+        st.session_state.dislike_list = []
+        st.session_state.liked_beans = []
+        st.write("시스템이 초기화되었습니다.")
 
 
 st.title("커피 원두 추천 시스템")
