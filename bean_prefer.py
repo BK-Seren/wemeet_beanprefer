@@ -21,27 +21,36 @@ brand_names = ["TheVenti", "Mega", "Paik", "Starbucks", "Ediya", "Compose", "Two
 
 if 'dislike_list' not in st.session_state:
     st.session_state.dislike_list = []
+if 'remaining_beans' not in st.session_state:
+    st.session_state.remaining_beans = []
+if 'feedback' not in st.session_state:
+    st.session_state.feedback = {}
 
 def evaluate_recommendations(base_bean, recommended_beans):
-    liked_beans = []
-    remaining_beans = recommended_beans.copy()
+    if not st.session_state.remaining_beans:
+        st.session_state.remaining_beans = recommended_beans.copy()
+        st.session_state.feedback = {bean: None for bean in recommended_beans}
 
+    liked_beans = []
     i = 0
-    while i < len(remaining_beans):
-        bean = remaining_beans[i]
+
+    while i < len(st.session_state.remaining_beans):
+        bean = st.session_state.remaining_beans[i]
 
         if bean not in liked_beans and bean not in st.session_state.dislike_list:
-            feedback = st.radio(f"{bean}에 대해 평가해주세요", ["호", "불호"], key=bean)
+            st.session_state.feedback[bean] = st.radio(
+                f"{bean}에 대해 평가해주세요",
+                ["호", "불호"],
+                index=0 if st.session_state.feedback[bean] == "호" else 1,
+                key=f"radio_{bean}"
+            )
 
-            if feedback == "불호":
+            if st.session_state.feedback[bean] == "불호":
                 st.session_state.dislike_list.append(bean)
                 st.write(f"{bean}을(를) 불호로 평가했습니다. 새로운 원두를 추천합니다.")
+                st.session_state.remaining_beans.pop(i)
 
-                # 불호 원두 제거
-                remaining_beans.pop(i)
-
-                # 새로운 추천 원두 추가
-                while len(remaining_beans) < 3:
+                while len(st.session_state.remaining_beans) < 3:
                     next_candidates = cosine_sim_df[base_bean].sort_values(ascending=False)
                     next_candidates = next_candidates.drop(
                         [base_bean] + brand_names + st.session_state.dislike_list + liked_beans, axis=0
@@ -49,19 +58,26 @@ def evaluate_recommendations(base_bean, recommended_beans):
 
                     if not next_candidates.empty:
                         new_recommendation = next_candidates.head(1).index[0]
-                        remaining_beans.append(new_recommendation)
+                        st.session_state.remaining_beans.append(new_recommendation)
+                        st.session_state.feedback[new_recommendation] = None
                         st.write(f"새로운 추천 원두 추가: {new_recommendation}")
                     else:
                         st.warning("추천할 원두가 부족합니다.")
                         break
-
             else:
                 liked_beans.append(bean)
                 i += 1
         else:
             i += 1
 
-    return remaining_beans
+    # 모든 원두가 호로 평가된 경우
+    if len(liked_beans) == len(st.session_state.remaining_beans) and len(liked_beans) == 3:
+        st.write("\n모든 추천 원두가 호로 평가되었습니다. 추천 리스트를 다시 출력합니다.")
+        st.write("최종 추천 원두:", liked_beans)
+        st.write("프로그램이 종료되었습니다. 감사합니다!")
+        st.markdown("[원두 구매하러 가기](https://coffee-shop.example.com)")
+
+    return st.session_state.remaining_beans
 
 
 st.title("커피 원두 추천 시스템")
@@ -80,7 +96,9 @@ if purchase_history == "예":
             .drop([purchased_bean] + brand_names + st.session_state.dislike_list, axis=0)
             .head(3).index
         )
-        evaluate_recommendations(purchased_bean, recommended_beans)
+        final_recommendations = evaluate_recommendations(purchased_bean, recommended_beans)
+        st.write("최종 추천 원두 리스트:", final_recommendations)
+
 else:
     sex = st.radio("성별을 선택하세요", ["남", "여"])
     age = st.slider("나이를 입력하세요", 18, 60, 25)
@@ -110,4 +128,5 @@ else:
             .drop(tag, axis=0)
             .head(3).index
         )
-        evaluate_recommendations(predicted_cafe, recommended_beans)
+        final_recommendations = evaluate_recommendations(predicted_cafe, recommended_beans)
+        st.write("최종 추천 원두 리스트:", final_recommendations)
