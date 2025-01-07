@@ -26,8 +26,12 @@ if 'liked_beans' not in st.session_state:
     st.session_state.liked_beans = []
 if 'recommended_beans' not in st.session_state:
     st.session_state.recommended_beans = []
+if 'final_recommendations' not in st.session_state:
+    st.session_state.final_recommendations = []
+
 
 # 추천 평가 함수
+
 def recommend_beans(purchased_bean):
     return list(
         cosine_sim_df[purchased_bean]
@@ -36,32 +40,62 @@ def recommend_beans(purchased_bean):
         .head(3).index
     )
 
+
 # 추천 평가
-def evaluate_recommendations(recommended_beans):
+
+def evaluate_recommendations(base_bean):
     sentiment_mapping = [":material/thumb_down:", ":material/thumb_up:"]
     user_feedback = {}
 
-    for bean in recommended_beans:
+    if not st.session_state.recommended_beans:
+        st.session_state.recommended_beans = recommend_beans(base_bean)
+
+    st.write("### 추천 원두 리스트:")
+
+    for bean in st.session_state.recommended_beans:
         selected = st.feedback("thumbs", key=bean)
         if selected is not None:
             st.markdown(f"{bean}: {sentiment_mapping[selected]}")
             user_feedback[bean] = selected
 
-    for bean, feedback in user_feedback.items():
-        if feedback == 0:  # thumb_down
-            st.session_state.dislike_list.append(bean)
-            st.write(f"{bean}이 불호로 평가되었습니다.")
-        else:  # thumb_up
-            if bean not in st.session_state.liked_beans:
-                st.session_state.liked_beans.append(bean)
+    if st.button("평가 완료"):
+        for bean, feedback in user_feedback.items():
+            if feedback == 0:  # thumb_down
+                if bean not in st.session_state.dislike_list:
+                    st.session_state.dislike_list.append(bean)
+                    st.session_state.recommended_beans.remove(bean)
+                    new_bean = recommend_beans(base_bean)
+                    for nb in new_bean:
+                        if nb not in st.session_state.recommended_beans and nb not in st.session_state.dislike_list:
+                            st.session_state.recommended_beans.append(nb)
+                            break
+            else:  # thumb_up
+                if bean not in st.session_state.liked_beans:
+                    st.session_state.liked_beans.append(bean)
+
+        if len(st.session_state.liked_beans) == 3:
+            st.session_state.final_recommendations = st.session_state.liked_beans
+            st.write("### 추천 원두 항목 리스트:")
+            st.write(st.session_state.final_recommendations)
+
+    if st.button("다시 시작"):
+        st.session_state.dislike_list = []
+        st.session_state.liked_beans = []
+        st.session_state.recommended_beans = []
+        st.session_state.final_recommendations = []
+        st.write("추천 시스템이 초기화되었습니다.")
+
+    if st.button("페이지 가기"):
+        st.markdown("[원두 구매하러 가기](https://coffee-shop.example.com)")
 
 
-
+# UI 구성
 st.title("커피 원두 추천 시스템")
 
 purchase_history = st.radio("원더룸에서 원두를 구입해 본 적이 있습니까?", ["예", "아니오"])
 
-exclude_beans = ["TheVenti", "Mega", "Paik", "Starbucks", "Ediya", "Compose", "Twosome", "Ethiopia Yirgacheffe Kochere Washed"]
+exclude_beans = ["TheVenti", "Mega", "Paik", "Starbucks", "Ediya", "Compose", "Twosome",
+                 "Ethiopia Yirgacheffe Kochere Washed"]
 
 if purchase_history == "예":
     purchased_bean = st.selectbox(
@@ -73,8 +107,7 @@ if purchase_history == "예":
         st.session_state.recommended_beans = recommend_beans(purchased_bean)
 
     if st.session_state.recommended_beans:
-        st.write("추천 원두 리스트:")
-        evaluate_recommendations(st.session_state.recommended_beans)
+        evaluate_recommendations(purchased_bean)
 
 else:
     sex = st.radio("성별을 선택하세요", ["남", "여"])
@@ -93,12 +126,9 @@ else:
             4 if coffee_type == "블랙" else 3 if coffee_type == "우유 라떼" else 2 if coffee_type == "시럽 커피" else 1,
             5 if flavor == "고소한, 구운" else 4 if flavor == "달콤, 설탕" else 3 if flavor == "초콜릿" else 2 if flavor == "과일" else 1
         ]
-
         cluster_prediction = c_model.predict(np.array(x).reshape(1, -1))[0]
         x.append(cluster_prediction)
-
         cafe_prediction = rf_model.predict(np.array(x).reshape(1, -1))[0]
         predicted_cafe = brand_names[cafe_prediction]
-
         st.session_state.recommended_beans = recommend_beans(predicted_cafe)
-        evaluate_recommendations(st.session_state.recommended_beans)
+        evaluate_recommendations(predicted_cafe)
