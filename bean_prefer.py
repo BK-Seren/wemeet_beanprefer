@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 import warnings
+import webbrowser
 
 warnings.filterwarnings("ignore")
 
@@ -58,7 +59,7 @@ def evaluate_recommendations(base_bean):
             st.markdown(f"{bean}: {sentiment_mapping[selected]}")
             user_feedback[bean] = selected
 
-    if st.button("평가 완료"):
+    if st.button("평가 완료", key="evaluate_done"):
         for bean, feedback in user_feedback.items():
             if feedback == 0:  # thumb_down
                 if bean not in st.session_state.dislike_list:
@@ -78,15 +79,15 @@ def evaluate_recommendations(base_bean):
             st.write("### 추천 원두 항목 리스트:")
             st.write(st.session_state.final_recommendations)
 
-    if st.button("다시 시작"):
+    if st.button("다시 시작", key="reset"):
         st.session_state.dislike_list = []
         st.session_state.liked_beans = []
         st.session_state.recommended_beans = []
         st.session_state.final_recommendations = []
         st.write("추천 시스템이 초기화되었습니다.")
 
-    if st.button("페이지 가기"):
-        st.markdown("[원두 구매하러 가기](https://www.wonderroom.co.kr/)")
+    if st.button("페이지 가기", key="go_to_page"):
+        webbrowser.open("https://www.wonderroom.co.kr/")
 
 
 # UI 구성
@@ -103,7 +104,7 @@ if purchase_history == "예":
         [bean for bean in data.index if bean not in exclude_beans]
     )
 
-    if st.button("추천 원두 확인"):
+    if st.button("추천 원두 확인", key="recommend_yes"):
         st.session_state.recommended_beans = recommend_beans(purchased_bean)
 
     if st.session_state.recommended_beans:
@@ -120,7 +121,7 @@ else:
     coffee_type = st.selectbox("커피 타입", ["블랙", "우유 라떼", "시럽 커피", "설탕 커피"])
     flavor = st.selectbox("커피 풍미", ["고소한, 구운", "달콤, 설탕", "초콜릿", "과일", "꽃향"])
 
-    if st.button("추천 원두 확인"):
+    if st.button("추천 원두 확인", key="recommend_no"):
         x = [
             1 if sex == "남" else 0, age, 1 if is_student == "학생" else 0,
             9 if frequency == "매일" else 7 if frequency == "주 5-6회" else 5 if frequency == "주 3-4회" else 3 if frequency == "주 2회" else 1,
@@ -138,4 +139,3 @@ else:
             for i, bean in enumerate(st.session_state.recommended_beans, start=1):
                 st.write(f"{i}. {bean}")
             evaluate_recommendations(predicted_cafe)
-
