@@ -86,7 +86,7 @@ def evaluate_recommendations(base_bean):
         st.write("추천 시스템이 초기화되었습니다.")
 
     if st.button("페이지 가기"):
-        st.markdown("[원두 구매하러 가기](https://coffee-shop.example.com)")
+        st.markdown("[원두 구매하러 가기](https://www.wonderroom.co.kr/)")
 
 
 # UI 구성
@@ -107,6 +107,8 @@ if purchase_history == "예":
         st.session_state.recommended_beans = recommend_beans(purchased_bean)
 
     if st.session_state.recommended_beans:
+        for i, bean in enumerate(st.session_state.recommended_beans, start=1):
+            st.write(f"{i}. {bean}")
         evaluate_recommendations(purchased_bean)
 
 else:
@@ -118,7 +120,7 @@ else:
     coffee_type = st.selectbox("커피 타입", ["블랙", "우유 라떼", "시럽 커피", "설탕 커피"])
     flavor = st.selectbox("커피 풍미", ["고소한, 구운", "달콤, 설탕", "초콜릿", "과일", "꽃향"])
 
-    if st.button("추천 카페 찾기"):
+    if st.button("추천 원두 확인"):
         x = [
             1 if sex == "남" else 0, age, 1 if is_student == "학생" else 0,
             9 if frequency == "매일" else 7 if frequency == "주 5-6회" else 5 if frequency == "주 3-4회" else 3 if frequency == "주 2회" else 1,
@@ -131,4 +133,9 @@ else:
         cafe_prediction = rf_model.predict(np.array(x).reshape(1, -1))[0]
         predicted_cafe = brand_names[cafe_prediction]
         st.session_state.recommended_beans = recommend_beans(predicted_cafe)
-        evaluate_recommendations(predicted_cafe)
+
+        if st.session_state.recommended_beans:
+            for i, bean in enumerate(st.session_state.recommended_beans, start=1):
+                st.write(f"{i}. {bean}")
+            evaluate_recommendations(predicted_cafe)
+
