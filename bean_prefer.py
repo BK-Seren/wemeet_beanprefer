@@ -33,13 +33,12 @@ if 'final_recommendations' not in st.session_state:
 # 추천 평가 함수
 
 def recommend_beans(purchased_bean):
-    exclude_items = set([purchased_bean] + brand_names + st.session_state.dislike_list + st.session_state.recommended_beans)
-    exclude_items = exclude_items.intersection(cosine_sim_df.index)
-
-    recommended = cosine_sim_df.loc[
-        ~cosine_sim_df.index.isin(exclude_items), purchased_bean
-    ].sort_values(ascending=False).head(3).index
-    return list(recommended)
+    return list(
+        cosine_sim_df[purchased_bean]
+        .sort_values(ascending=False)
+        .drop([purchased_bean] + brand_names + st.session_state.dislike_list, axis=0)
+        .head(3).index
+    )
 
 
 # 추천 평가
@@ -80,9 +79,11 @@ def evaluate_recommendations(base_bean):
             st.write(st.session_state.final_recommendations)
 
     if st.button("다시 시작"):
-        for key in ['dislike_list', 'liked_beans', 'recommended_beans', 'final_recommendations']:
-            st.session_state[key] = []
-        st.experimental_rerun()  # 페이지를 새로고침하여 초기화
+        st.session_state.dislike_list = []
+        st.session_state.liked_beans = []
+        st.session_state.recommended_beans = []
+        st.session_state.final_recommendations = []
+        st.write("추천 시스템이 초기화되었습니다.")
 
     if st.button("페이지 가기"):
         st.markdown("[원두 구매하러 가기](https://www.wonderroom.co.kr/)")
