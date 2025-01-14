@@ -132,11 +132,10 @@ else:
         x.append(cluster_prediction)
         cafe_prediction = rf_model.predict(np.array(x).reshape(1, -1))[0]
         predicted_cafe = brand_names[cafe_prediction]
-        st.write("예측된 카페 브랜드:", predicted_cafe)
         st.session_state.recommended_beans = recommend_beans(predicted_cafe)
 
-        if st.session_state.recommended_beans:
-            for i, bean in enumerate(st.session_state.recommended_beans, start=1):
-                st.write(f"{i}. {bean}")
-            evaluate_recommendations(st.session_state.recommended_beans[0])
+    if st.session_state.recommended_beans:
+        for i, bean in enumerate(st.session_state.recommended_beans, start=1):
+            st.write(f"{i}. {bean}")
+        evaluate_recommendations(st.session_state.recommended_beans[0])
 
