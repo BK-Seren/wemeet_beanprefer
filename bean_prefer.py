@@ -133,15 +133,11 @@ else:
         cafe_prediction = rf_model.predict(np.array(x).reshape(1, -1))[0]
         predicted_cafe = brand_names[cafe_prediction]
         st.write("예측된 카페 브랜드:", predicted_cafe)
-        if predicted_cafe in cosine_sim_df.index:
-            st.session_state.recommended_beans = recommend_beans(predicted_cafe)
-        else:
-            st.write("예측된 카페 브랜드가 유효하지 않아 추천할 원두가 없습니다.")
+        st.session_state.recommended_beans = recommend_beans(predicted_cafe)
+        st.write("원두 추천 상태", recommend_beans(predicted_cafe))
 
         if st.session_state.recommended_beans:
             for i, bean in enumerate(st.session_state.recommended_beans, start=1):
                 st.write(f"{i}. {bean}")
-            evaluate_recommendations(predicted_cafe)
-        else:
-            st.write("추천된 원두가 없습니다.")
+            evaluate_recommendations(st.session_state.recommended_beans[0])
 
