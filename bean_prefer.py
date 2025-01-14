@@ -134,7 +134,6 @@ else:
         predicted_cafe = brand_names[cafe_prediction]
         st.write("예측된 카페 브랜드:", predicted_cafe)
         st.session_state.recommended_beans = recommend_beans(predicted_cafe)
-        st.write("원두 추천 상태", recommend_beans(predicted_cafe))
 
         if st.session_state.recommended_beans:
             for i, bean in enumerate(st.session_state.recommended_beans, start=1):
